@@ -7,15 +7,10 @@
 
   <style>
     :root {
-      --brand:#0a7;
-      --accent:#17a2b8;
-      --danger:#dc3545;
-      --line:#e5e7eb;
-      --text:#222;
-      --muted:#666;
-      --bg:#f7f7f8;
+      --brand:#0a7; --accent:#17a2b8; --danger:#dc3545;
+      --line:#e5e7eb; --text:#222; --muted:#666; --bg:#f7f7f8;
     }
-    html,body {
+    html,body{
       margin:0; padding:0; background:var(--bg); color:var(--text);
       font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
     }
@@ -24,8 +19,8 @@
     h2{font-size:18px;margin:16px 0 10px}
     section{display:none}
     section.active{display:block}
-    input,select,button{width:100%;box-sizing:border-box;font-size:16px}
-    input,select{padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+    input,button{width:100%;box-sizing:border-box;font-size:16px}
+    input{padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff}
     button{padding:12px;border:0;border-radius:10px;cursor:pointer}
     .btn{background:var(--brand);color:#fff}
     .btn.ghost{background:#fff;border:1px solid var(--line);color:#333}
@@ -35,25 +30,25 @@
     .shopBtn{display:block;text-align:left;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
     .itemRow{display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
     .itemRow.selected{outline:2px solid #1976d2}
-    .itemRow.soldout{background:#fbe9e7; color:#c62828; opacity:.85; pointer-events:none}
+    .itemRow.soldout{background:#fbe9e7;color:#c62828;opacity:.85;pointer-events:none}
     .row{margin:10px 0}
     .header{position:sticky;top:0;background:var(--bg);padding:12px 16px 0}
     .topbar{display:flex;align-items:center;gap:8px;margin:6px 0 12px}
-    .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:9999;}
-    .modal{width:90%; max-width:420px; background:#fff; border-radius:12px; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,.2)}
-    .modal h3{margin:0 0 8px; font-size:18px}
-    .modal p{margin:8px 0 16px; line-height:1.6}
-    .modal .actions{display:flex; justify-content:flex-end; gap:8px}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:9999}
+    .modal{width:90%;max-width:420px;background:#fff;border-radius:12px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
+    .modal h3{margin:0 0 8px;font-size:18px}
+    .modal p{margin:8px 0 16px;line-height:1.6}
+    .modal .actions{display:flex;justify-content:flex-end;gap:8px}
   </style>
 
-  <!-- ✅ LIFF v2（1つだけ） -->
+  <!-- LIFF v2（1つだけ） -->
   <script src="https://static.line-scdn.net/liff/2.21.1/sdk.js"></script>
 </head>
 <body>
 <div class="container">
 
   <div class="header">
-    <h1>お弁当注文-ver.2</h1>
+    <h1>お弁当注文</h1>
     <div class="note">※現在はテスト中のため、時間に関係なく注文できます</div>
   </div>
 
@@ -128,7 +123,7 @@ window.addEventListener('unhandledrejection', e => {
 
 // ====== 定数・状態 ======
 const LIFF_ID  = '2007592277-egMkGZrD';
-const API_BASE = 'https://script.google.com/macros/s/AKfycby0zygYjyW8uMUgcnFOnoszJh8D0IKOv1qwiSy1WVXrSX1u4DXlw4ipb-KMOoQL15W0wg/exec';
+const API_BASE = 'https://script.google.com/macros/s/AKfycbw7xU5BLDeKItjZMbJiI3UF_jsikXpXA2ipQ1HefJXcTdus8fyDVotm0zFt_jdUJ2BLZQ/exec';
 
 let TOKEN = null, initData = null, chosenShop = null, chosenItem = null;
 
@@ -160,6 +155,7 @@ async function api(action, payload = {}) {
       body: params.toString(),
     });
     const text = await res.text();
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}: ${text.slice(0,200)}`);
     return JSON.parse(text);
   } catch (e1) {
     // 2nd: FormData フォールバック
@@ -178,8 +174,9 @@ async function api(action, payload = {}) {
       body: fd,
     });
     const text2 = await res2.text();
+    if (!res2.ok) throw new Error(`HTTP ${res2.status} ${res2.statusText}: ${text2.slice(0,200)}`);
     try { return JSON.parse(text2); }
-    catch { throw new Error('API呼び出し失敗: ' + (e1?.message || 'Load failed')); }
+    catch { throw new Error('APIレスポンス解析に失敗: ' + text2.slice(0,200)); }
   }
 }
 
@@ -229,7 +226,7 @@ $('loginBtn').onclick = async function(){
     if(!r.ok){ alert(r.msg||'ユーザーIDまたはパスワードが間違っています'); return; }
     TOKEN = r.token;
 
-    // ✅ UIなしで自動紐付け（LIFF内のみ）
+    // LIFF内なら自動紐付け（opt-in=true）
     try {
       await ensureLiff();
       if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
@@ -285,7 +282,8 @@ $('orderBtn').onclick = async function(){
     try {
       await ensureLiff();
       if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
-        const messageText = `【注文確定】
+        const messageText =
+`【注文確定】
 店舗：${chosenShop.shop_name}
 注文ID：${r.orderId}
 商品：${chosenItem.item} × ${qty}
