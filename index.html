@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>弁当注文</title>
 
-  <!-- Tailwind等は未使用。純CSSで軽量化 -->
   <style>
     :root {
       --brand:#0a7;
@@ -16,8 +15,10 @@
       --muted:#666;
       --bg:#f7f7f8;
     }
-    html,body { margin:0; padding:0; background:var(--bg); color:var(--text);
-      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Hiragino Kaku Gothic ProN",Meiryo,sans-serif; }
+    html,body {
+      margin:0; padding:0; background:var(--bg); color:var(--text);
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
+    }
     .container{max-width:520px;margin:0 auto;padding:16px 16px 32px}
     h1{font-size:20px;margin:4px 0 12px}
     h2{font-size:18px;margin:16px 0 10px}
@@ -27,9 +28,7 @@
     input,select{padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff}
     button{padding:12px;border:0;border-radius:10px;cursor:pointer}
     .btn{background:var(--brand);color:#fff}
-    .btn.secondary{background:var(--accent);color:#fff}
     .btn.ghost{background:#fff;border:1px solid var(--line);color:#333}
-    .btn.danger{background:var(--danger);color:#fff}
     .btn[disabled]{opacity:.6;pointer-events:none}
     .note{font-size:12px;color:var(--muted);margin-top:6px}
     .list{display:flex;flex-direction:column;gap:8px}
@@ -38,11 +37,8 @@
     .itemRow.selected{outline:2px solid #1976d2}
     .itemRow.soldout{background:#fbe9e7; color:#c62828; opacity:.85; pointer-events:none}
     .row{margin:10px 0}
-    .help{font-size:12px;color:var(--muted)}
     .header{position:sticky;top:0;background:var(--bg);padding:12px 16px 0}
-    .toolbar{display:flex;gap:8px;margin-top:8px;align-items:center}
     .topbar{display:flex;align-items:center;gap:8px;margin:6px 0 12px}
-    .backTop{background:#fff;border:1px solid var(--line);color:#333;padding:8px 12px;border-radius:10px}
     .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:9999;}
     .modal{width:90%; max-width:420px; background:#fff; border-radius:12px; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,.2)}
     .modal h3{margin:0 0 8px; font-size:18px}
@@ -50,7 +46,7 @@
     .modal .actions{display:flex; justify-content:flex-end; gap:8px}
   </style>
 
-  <!-- ✅ LIFF v2（1つだけ）-->
+  <!-- ✅ LIFF v2（1つだけ） -->
   <script src="https://static.line-scdn.net/liff/2.21.1/sdk.js"></script>
 </head>
 <body>
@@ -58,16 +54,7 @@
 
   <div class="header">
     <h1>お弁当注文</h1>
-    <div class="help">※現在はテスト中のため、時間に関係なく注文できます</div>
-
-    <div class="toolbar">
-      <button class="btn secondary" id="relinkBtn">LINE連携（再実行）</button>
-      <label class="help" style="display:flex;gap:6px;align-items:center">
-        <input type="checkbox" id="optIn" checked />
-        通知を受け取る（注文確定メッセージ）
-      </label>
-      <span class="help" id="linkInfo"></span>
-    </div>
+    <div class="note">※現在はテスト中のため、時間に関係なく注文できます</div>
   </div>
 
   <!-- ログイン -->
@@ -75,22 +62,16 @@
     <h2>ログイン</h2>
     <div class="row"><input type="text" id="uid" placeholder="学籍番号"></div>
     <div class="row"><input type="password" id="pw" placeholder="パスワード"></div>
-    <div class="toolbar">
-      <button id="loginBtn" class="btn">ログイン</button>
-      <button id="openLiffBtn" class="btn ghost">LINEで開く（LIFF起動）</button>
-    </div>
-    <p class="note">※「LINEで開く」を押すと、このページをLINEアプリの中で開けます（連携が安定します）。</p>
+    <div class="row"><button id="loginBtn" class="btn">ログイン</button></div>
   </section>
 
   <!-- パスワード変更（初回） -->
   <section id="pwSec">
     <h2>パスワード変更</h2>
+    <div class="row"><input id="npw" type="password" placeholder="新パスワード（6文字以上）"></div>
     <div class="row">
-      <input id="npw" type="password" placeholder="新パスワード（6文字以上）">
-    </div>
-    <div class="toolbar">
       <button id="pwBtn" class="btn">変更する</button>
-      <button class="btn ghost" id="backToLoginBtn">戻る</button>
+      <button class="btn ghost" id="backToLoginBtn" style="margin-top:8px">戻る</button>
     </div>
   </section>
 
@@ -98,34 +79,28 @@
   <section id="shopSec">
     <h2>お店を選択</h2>
     <div id="shops" class="list"></div>
-    <div class="toolbar">
-      <button class="btn ghost" id="logoutBtn">ログアウト</button>
-    </div>
+    <div class="row"><button class="btn ghost" id="logoutBtn">ログアウト</button></div>
   </section>
 
   <!-- 商品を選ぶ -->
   <section id="menuSec">
-    <div class="topbar">
-      <h2 id="shopTitle" style="margin:0">お弁当を選ぶ</h2>
-    </div>
-
+    <div class="topbar"><h2 id="shopTitle" style="margin:0">お弁当を選ぶ</h2></div>
     <div id="menu" class="list"></div>
 
     <div class="row">
-      <label class="help">数量</label>
+      <label class="note">数量</label>
       <input id="qty" type="number" min="1" max="20" value="1">
     </div>
 
     <div class="row">
-      <label class="help">備考（任意）</label>
+      <label class="note">備考（任意）</label>
       <input id="note" placeholder="大盛り など">
     </div>
 
-    <div class="toolbar">
+    <div class="row">
       <button id="orderBtn" class="btn">注文する</button>
-      <button class="btn ghost" id="backBtn">← 戻る</button>
+      <button class="btn ghost" id="backBtn" style="margin-top:8px">← 戻る</button>
     </div>
-    <p class="note">売切れの商品は赤色で表示され、選択できません（残数は表示しません）。</p>
   </section>
 
 </div>
@@ -142,7 +117,7 @@
 </div>
 
 <script>
-// ====== フェイルセーフ（致命エラー表示） ======
+// ====== エラー捕捉（真っ白対策） ======
 window.addEventListener('error', e => {
   alert('JSエラー: ' + e.message + '\n' + (e.filename||'') + ':' + (e.lineno||''));
 });
@@ -152,8 +127,7 @@ window.addEventListener('unhandledrejection', e => {
 });
 
 // ====== 定数・状態 ======
-const LIFF_ID  = '2007592277-egMkGZrD'; // ←指定どおり
-// ★GAS Webアプリ URL（/exec の方）に置き換え不要：すでに指定のものを使用
+const LIFF_ID  = '2007592277-egMkGZrD';
 const API_BASE = 'https://script.google.com/macros/s/AKfycby0zygYjyW8uMUgcnFOnoszJh8D0IKOv1qwiSy1WVXrSX1u4DXlw4ipb-KMOoQL15W0wg/exec';
 
 let TOKEN = null, initData = null, chosenShop = null, chosenItem = null;
@@ -165,23 +139,51 @@ function show(id){
 }
 function isOrderOpen(){ return true; } // テスト中は常にOK
 
-// ====== GAS WebAPI 呼び出し（CORSプリフライト回避のため x-www-form-urlencoded） ======
+/** Safariの"Load failed"対策込みAPI呼び出し */
 async function api(action, payload = {}) {
-  const params = new URLSearchParams({ action });
-  for (const [k, v] of Object.entries(payload)) {
-    params.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v ?? ''));
+  const url = API_BASE + '?t=' + Date.now();
+
+  // 1st: x-www-form-urlencoded（プリフライト回避）
+  try {
+    const params = new URLSearchParams({ action });
+    for (const [k, v] of Object.entries(payload)) {
+      params.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v ?? ''));
+    }
+    const res = await fetch(url, {
+      method: 'POST',
+      mode: 'cors',
+      credentials: 'omit',
+      redirect: 'follow',
+      cache: 'no-store',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
+      referrerPolicy: 'no-referrer',
+      body: params.toString(),
+    });
+    const text = await res.text();
+    return JSON.parse(text);
+  } catch (e1) {
+    // 2nd: FormData フォールバック
+    const fd = new FormData();
+    fd.append('action', action);
+    for (const [k, v] of Object.entries(payload)) {
+      fd.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v ?? ''));
+    }
+    const res2 = await fetch(url, {
+      method: 'POST',
+      mode: 'cors',
+      credentials: 'omit',
+      redirect: 'follow',
+      cache: 'no-store',
+      referrerPolicy: 'no-referrer',
+      body: fd,
+    });
+    const text2 = await res2.text();
+    try { return JSON.parse(text2); }
+    catch { throw new Error('API呼び出し失敗: ' + (e1?.message || 'Load failed')); }
   }
-  const res = await fetch(API_BASE, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-    body: params.toString(),
-  });
-  const text = await res.text();
-  try { return JSON.parse(text); }
-  catch(e){ throw new Error('APIレスポンスの解析に失敗: ' + text.slice(0,200)); }
 }
 
-// ====== 画面レンダリング ======
+// ====== レンダリング ======
 function renderShops(){
   const wrap = $('shops'); wrap.innerHTML='';
   (initData.shops||[]).forEach(s=>{
@@ -227,12 +229,12 @@ $('loginBtn').onclick = async function(){
     if(!r.ok){ alert(r.msg||'ユーザーIDまたはパスワードが間違っています'); return; }
     TOKEN = r.token;
 
-    // 可能なら即LINE連携（任意）
+    // ✅ UIなしで自動紐付け（LIFF内のみ）
     try {
-      if (liff.isLoggedIn()) {
+      await ensureLiff();
+      if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
         const prof = await liff.getProfile();
-        await api('linkLineId', { token: TOKEN, lineId: prof.userId, optIn: $('optIn').checked ? 'true':'false' });
-        $('linkInfo').textContent = 'LINE連携済み';
+        await api('linkLineId', { token: TOKEN, lineId: prof.userId, optIn: 'true' });
       }
     } catch(_) {}
 
@@ -279,9 +281,10 @@ $('orderBtn').onclick = async function(){
       return;
     }
 
-    // LIFFトークへ送信（LIFF内のみ）
+    // LIFF内ならトークへ送信（UIなし）
     try {
-      if (liff.isInClient()) {
+      await ensureLiff();
+      if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
         const messageText = `【注文確定】
 店舗：${chosenShop.shop_name}
 注文ID：${r.orderId}
@@ -308,37 +311,12 @@ $('okCloseBtn').onclick = ()=>{
   show('shopSec');
 };
 
-$('relinkBtn').onclick = async ()=>{
-  if(!TOKEN){ alert('まずはログインしてください'); return; }
-  try{
-    await ensureLiff();
-    const prof = await liff.getProfile();
-    await api('linkLineId', { token: TOKEN, lineId: prof.userId, optIn: $('optIn').checked ? 'true':'false' });
-    $('linkInfo').textContent = 'LINE連携済み';
-    alert('LINE連携を更新しました');
-  } catch(e) {
-    alert('LINE連携に失敗: ' + e.message);
-  }
-};
-
-$('openLiffBtn').onclick = ()=>{
-  // LIFF起動URL（このページをLIFFとして開き直す）
-  location.href = 'https://liff.line.me/' + LIFF_ID;
-};
-
 // ====== 初期化 ======
 async function ensureLiff(){
   try{
-    if (!liff.isApiAvailable) { /* 古いブラウザ対策 */ }
-    // 既に初期化済みならreturn
     if (window.__liffInited) return;
     await liff.init({ liffId: LIFF_ID });
     window.__liffInited = true;
-    // LIFF外なら自動ログインを試みない（外部ブラウザでのエラー回避）
-    if (!liff.isLoggedIn() && liff.isInClient() === false) {
-      // 任意: 自動ログインしたい場合は以下をコメント解除
-      // liff.login({ redirectUri: location.href });
-    }
   } catch(e){
     console.warn('LIFF初期化失敗', e);
   }
