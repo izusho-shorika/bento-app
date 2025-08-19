@@ -336,6 +336,20 @@ function openOk(orderId){
   $('okMsg').textContent = '注文ID：' + orderId;
   $('okModal').style.display = 'flex';
 }
+
+const BOT_BASIC_ID = '@029slqnu'; // ←置き換え
+
+function openOk(orderId){
+  $('okMsg').textContent = '注文ID：' + orderId;
+  $('okModal').style.display = 'flex';
+
+  // 「LINEで受け取る」→ ボットのトークを開き、order:<id> をプレフィル
+  $('sendToTalkBtn').onclick = () => {
+    const msg = `order:${orderId}`;
+    // ボット個チャを開いてメッセージ入力欄にプレフィル（ユーザーが送信をタップ）
+    location.href = `line://oaMessage/${encodeURIComponent(BOT_BASIC_ID)}/?${encodeURIComponent(msg)}`;
+  };
+}
 </script>
 </body>
 </html>
