@@ -2,71 +2,82 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>弁当注文</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>お弁当注文</title>
+
+  <!-- ★★★ ここだけ先生の環境に合わせて編集 ★★★ -->
+  <script>
+    const LIFF_ID = "2007592277-egMkGZrD"; // ←先生のLIFF ID
+    const GAS_URL = "https://script.google.com/macros/s/＜先生の最新/exec＞/exec"; // ←先生のGAS /exec
+  </script>
+  <!-- ★★★ この2行以外は触らないでOK ★★★ -->
+
+  <!-- LIFF SDK（1つだけ） -->
+  <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
   <style>
     :root {
       --brand:#0a7; --accent:#17a2b8; --danger:#dc3545;
       --line:#e5e7eb; --text:#222; --muted:#666; --bg:#f7f7f8;
     }
-    html,body{
-      margin:0; padding:0; background:var(--bg); color:var(--text);
-      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
-    }
+    html,body { margin:0; padding:0; background:var(--bg); color:var(--text);
+      font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Hiragino Sans","Hiragino Kaku Gothic ProN",Meiryo,sans-serif }
     .container{max-width:520px;margin:0 auto;padding:16px 16px 32px}
     h1{font-size:20px;margin:4px 0 12px}
     h2{font-size:18px;margin:16px 0 10px}
-    section{display:none}
-    section.active{display:block}
-    input,button{width:100%;box-sizing:border-box;font-size:16px}
-    input{padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+    section{display:none} section.active{display:block}
+    input,select,button{width:100%;box-sizing:border-box;font-size:16px}
+    input,select{padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff}
     button{padding:12px;border:0;border-radius:10px;cursor:pointer}
     .btn{background:var(--brand);color:#fff}
+    .btn.secondary{background:var(--accent);color:#fff}
     .btn.ghost{background:#fff;border:1px solid var(--line);color:#333}
+    .btn.danger{background:var(--danger);color:#fff}
     .btn[disabled]{opacity:.6;pointer-events:none}
     .note{font-size:12px;color:var(--muted);margin-top:6px}
     .list{display:flex;flex-direction:column;gap:8px}
     .shopBtn{display:block;text-align:left;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
     .itemRow{display:flex;justify-content:space-between;align-items:center;background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}
     .itemRow.selected{outline:2px solid #1976d2}
-    .itemRow.soldout{background:#fbe9e7;color:#c62828;opacity:.85;pointer-events:none}
+    .itemRow.soldout{background:#fbe9e7; color:#c62828; opacity:.85; pointer-events:none}
     .row{margin:10px 0}
     .header{position:sticky;top:0;background:var(--bg);padding:12px 16px 0}
     .topbar{display:flex;align-items:center;gap:8px;margin:6px 0 12px}
-    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:9999}
-    .modal{width:90%;max-width:420px;background:#fff;border-radius:12px;padding:18px;box-shadow:0 10px 30px rgba(0,0,0,.2)}
-    .modal h3{margin:0 0 8px;font-size:18px}
-    .modal p{margin:8px 0 16px;line-height:1.6}
-    .modal .actions{display:flex;justify-content:flex-end;gap:8px}
+    .modal-backdrop{position:fixed; inset:0; background:rgba(0,0,0,.35); display:none; align-items:center; justify-content:center; z-index:9999;}
+    .modal{width:90%; max-width:420px; background:#fff; border-radius:12px; padding:18px; box-shadow:0 10px 30px rgba(0,0,0,.2)}
+    .modal h3{margin:0 0 8px; font-size:18px}
+    .modal p{margin:8px 0 16px; line-height:1.6}
+    .modal .actions{display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end}
+    .help{font-size:12px;color:var(--muted)}
   </style>
-
-  <!-- LIFF v2（1つだけ） -->
-  <script src="https://static.line-scdn.net/liff/2.21.1/sdk.js"></script>
 </head>
 <body>
 <div class="container">
-
   <div class="header">
     <h1>お弁当注文</h1>
-    <div class="note">※現在はテスト中のため、時間に関係なく注文できます</div>
+    <div class="help">※テスト中のため、時間に関係なく注文できます</div>
   </div>
 
   <!-- ログイン -->
   <section id="loginSec" class="active">
     <h2>ログイン</h2>
-    <div class="row"><input type="text" id="uid" placeholder="学籍番号"></div>
-    <div class="row"><input type="password" id="pw" placeholder="パスワード"></div>
-    <div class="row"><button id="loginBtn" class="btn">ログイン</button></div>
+    <div class="row">
+      <button id="liffLoginBtn" class="btn secondary" style="display:none">LINEでログイン</button>
+    </div>
+    <input type="text" id="uid" placeholder="学籍番号">
+    <input type="password" id="pw" placeholder="パスワード">
+    <button id="loginBtn" class="btn">ログイン</button>
   </section>
 
   <!-- パスワード変更（初回） -->
   <section id="pwSec">
     <h2>パスワード変更</h2>
-    <div class="row"><input id="npw" type="password" placeholder="新パスワード（6文字以上）"></div>
     <div class="row">
+      <input id="npw" type="password" placeholder="新パスワード（6文字以上）">
+    </div>
+    <div class="row" style="display:flex; gap:8px">
       <button id="pwBtn" class="btn">変更する</button>
-      <button class="btn ghost" id="backToLoginBtn" style="margin-top:8px">戻る</button>
+      <button class="btn ghost" id="backToLoginBtn">戻る</button>
     </div>
   </section>
 
@@ -74,114 +85,71 @@
   <section id="shopSec">
     <h2>お店を選択</h2>
     <div id="shops" class="list"></div>
-    <div class="row"><button class="btn ghost" id="logoutBtn">ログアウト</button></div>
+    <div class="row">
+      <button class="btn ghost" id="logoutBtn">ログアウト</button>
+    </div>
   </section>
 
   <!-- 商品を選ぶ -->
   <section id="menuSec">
-    <div class="topbar"><h2 id="shopTitle" style="margin:0">お弁当を選ぶ</h2></div>
+    <div class="topbar">
+      <h2 id="shopTitle" style="margin:0">お弁当を選ぶ</h2>
+    </div>
+
     <div id="menu" class="list"></div>
 
     <div class="row">
-      <label class="note">数量</label>
+      <label class="help">数量</label>
       <input id="qty" type="number" min="1" max="20" value="1">
     </div>
 
     <div class="row">
-      <label class="note">備考（任意）</label>
+      <label class="help">備考（任意）</label>
       <input id="note" placeholder="大盛り など">
     </div>
 
-    <div class="row">
+    <div class="row" style="display:flex; gap:8px; flex-wrap:wrap">
       <button id="orderBtn" class="btn">注文する</button>
-      <button class="btn ghost" id="backBtn" style="margin-top:8px">← 戻る</button>
+      <button class="btn ghost" id="backBtn">← 戻る</button>
     </div>
+    <p class="note">売切れの商品は赤色で表示され、選択できません（残数は表示しません）。</p>
   </section>
-
 </div>
 
 <!-- 受注完了ダイアログ -->
-<div id="okModal" class="modal-backdrop">
+<div id="okModal" class="modal-backdrop" role="dialog" aria-modal="true">
   <div class="modal">
     <h3>注文を受け付けました</h3>
     <p id="okMsg">（注文ID：—）</p>
+    <p class="help" id="okHint">「LINEで受け取る」を押すと <code>order:注文ID</code> を送信します。外部ブラウザの場合はクリップボードにコピーします。</p>
     <div class="actions">
-      <button class="btn ghost" id="sendToTalkBtn">LINEで受け取る</button>
+      <button class="btn secondary" id="sendToLineBtn">LINEで受け取る</button>
       <button class="btn" id="okCloseBtn">閉じる</button>
     </div>
   </div>
 </div>
 
 <script>
-// ====== エラー捕捉（真っ白対策） ======
-window.addEventListener('error', e => {
-  alert('JSエラー: ' + e.message + '\n' + (e.filename||'') + ':' + (e.lineno||''));
-});
-window.addEventListener('unhandledrejection', e => {
-  const r = e.reason;
-  alert('Promiseエラー: ' + (r?.message || r || 'unknown'));
-});
+/* ====== ユーティリティ ====== */
+let TOKEN=null, initData=null, chosenShop=null, chosenItem=null, lastOrderId=null;
+const $ = id => document.getElementById(id);
+const show = id => { document.querySelectorAll('section').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); };
+function isOrderOpen(){ return true; } // テスト中は常に受付
 
-// ====== 定数・状態 ======
-const LIFF_ID  = '2007592277-egMkGZrD';
-const API_BASE = 'https://script.google.com/macros/s/AKfycbw7xU5BLDeKItjZMbJiI3UF_jsikXpXA2ipQ1HefJXcTdus8fyDVotm0zFt_jdUJ2BLZQ/exec';
-
-let TOKEN = null, initData = null, chosenShop = null, chosenItem = null;
-
-function $(id){ return document.getElementById(id); }
-function show(id){
-  document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
-  $(id).classList.add('active');
-}
-function isOrderOpen(){ return true; } // テスト中は常にOK
-
-/** Safariの"Load failed"対策込みAPI呼び出し */
-async function api(action, payload = {}) {
-  const url = API_BASE + '?t=' + Date.now();
-
-  // 1st: x-www-form-urlencoded（プリフライト回避）
-  try {
-    const params = new URLSearchParams({ action });
-    for (const [k, v] of Object.entries(payload)) {
-      params.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v ?? ''));
-    }
-    const res = await fetch(url, {
-      method: 'POST',
-      mode: 'cors',
-      credentials: 'omit',
-      redirect: 'follow',
-      cache: 'no-store',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8' },
-      referrerPolicy: 'no-referrer',
-      body: params.toString(),
-    });
-    const text = await res.text();
-    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}: ${text.slice(0,200)}`);
-    return JSON.parse(text);
-  } catch (e1) {
-    // 2nd: FormData フォールバック
-    const fd = new FormData();
-    fd.append('action', action);
-    for (const [k, v] of Object.entries(payload)) {
-      fd.append(k, typeof v === 'object' ? JSON.stringify(v) : String(v ?? ''));
-    }
-    const res2 = await fetch(url, {
-      method: 'POST',
-      mode: 'cors',
-      credentials: 'omit',
-      redirect: 'follow',
-      cache: 'no-store',
-      referrerPolicy: 'no-referrer',
-      body: fd,
-    });
-    const text2 = await res2.text();
-    if (!res2.ok) throw new Error(`HTTP ${res2.status} ${res2.statusText}: ${text2.slice(0,200)}`);
-    try { return JSON.parse(text2); }
-    catch { throw new Error('APIレスポンス解析に失敗: ' + text2.slice(0,200)); }
-  }
+// GAS 呼び出し（application/x-www-form-urlencoded）
+async function callApi(params){
+  const res = await fetch(GAS_URL, {
+    method: 'POST',
+    headers: { 'Content-Type':'application/x-www-form-urlencoded' },
+    body: new URLSearchParams(params).toString(),
+  });
+  if(!res.ok) throw new Error('Load failed');
+  // webhook経由のOKはプレーンテキスト"OK"なのでJSONパース失敗の可能性あり
+  const text = await res.text();
+  try { return JSON.parse(text); } catch(_){ return { ok:true, raw:text }; }
 }
 
-// ====== レンダリング ======
+/* ====== 画面描画 ====== */
 function renderShops(){
   const wrap = $('shops'); wrap.innerHTML='';
   (initData.shops||[]).forEach(s=>{
@@ -212,144 +180,148 @@ function renderMenu(shop_id){
   });
 }
 
-// ====== イベント ======
-$('backBtn').onclick = ()=>{ chosenItem=null; show('shopSec'); };
-$('backToLoginBtn').onclick = ()=> show('loginSec');
-$('logoutBtn').onclick = ()=>{ TOKEN=null; chosenShop=null; chosenItem=null; $('uid').value=''; $('pw').value=''; show('loginSec'); };
-
-$('loginBtn').onclick = async function(){
-  const userId = $('uid').value.trim();
-  const password = $('pw').value;
-  if(!userId || !password){ alert('IDとパスワードを入力してください'); return; }
-  this.disabled = true;
-  try{
-    const r = await api('login', { uid: userId, pw: password });
-    if(!r.ok){ alert(r.msg||'ユーザーIDまたはパスワードが間違っています'); return; }
-    TOKEN = r.token;
-
-    // LIFF内なら自動紐付け（opt-in=true）
-    try {
-      await ensureLiff();
-      if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
-        const prof = await liff.getProfile();
-        await api('linkLineId', { token: TOKEN, lineId: prof.userId, optIn: 'true' });
-      }
-    } catch(_) {}
-
-    if (r.mustChange) show('pwSec');
-    else await loadInit();
-  } catch(e){
-    alert('通信エラー: ' + e.message);
-  } finally {
-    this.disabled = false;
-  }
-};
-
-$('pwBtn').onclick = async function(){
-  const npw = $('npw').value;
-  if(!npw || npw.length<6){ alert('6文字以上にしてください'); return; }
-  this.disabled = true;
-  try{
-    const r = await api('changePassword', { token: TOKEN, npw });
-    if(!r.ok){ alert(r.msg||'変更に失敗'); return; }
-    await loadInit();
-  } catch(_){
-    alert('通信エラー');
-  } finally {
-    this.disabled = false;
-  }
-};
-
-$('orderBtn').onclick = async function(){
-  if(!TOKEN){ alert('セッションが切れました。ログインし直してください。'); show('loginSec'); return; }
-  if(!chosenShop || !chosenItem){ alert('商品を選択してください'); return; }
-  if(!isOrderOpen()){ alert('現在は受付時間外です'); return; }
-
-  const qty  = Number($('qty').value||1);
-  const note = $('note').value||'';
-  const btn  = this; btn.disabled = true;
-
-  try {
-    const r = await api('submitOrder', {
-      token: TOKEN, shop_id: chosenShop.shop_id, item: chosenItem.item, qty, note, userAgent: navigator.userAgent
-    });
-    if(!r.ok){
-      alert(r.msg || '注文に失敗しました');
-      if((r.msg||'').includes('上限に達しました')) renderMenu(chosenShop.shop_id);
-      return;
-    }
-
-    // LIFF内ならトークへ送信（UIなし）
-    try {
-      await ensureLiff();
-      if (typeof liff !== 'undefined' && liff.isInClient && liff.isInClient()) {
-        const messageText =
-`【注文確定】
-店舗：${chosenShop.shop_name}
-注文ID：${r.orderId}
-商品：${chosenItem.item} × ${qty}
-単価：${Number(chosenItem.price).toLocaleString('ja-JP')}円
-小計：${(chosenItem.price * qty).toLocaleString('ja-JP')}円
-時刻：${new Date().toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })}`;
-        await liff.sendMessages([{ type:'text', text: messageText }]);
-      }
-    } catch (e) { console.error('メッセージ送信失敗', e); }
-
-    openOk(r.orderId);
-  } catch(_){
-    alert('通信エラー');
-  } finally {
-    btn.disabled = false;
-  }
-};
-
-$('okCloseBtn').onclick = ()=>{
-  $('qty').value = 1; $('note').value = '';
+/* ====== 受注完了モーダル ====== */
+function openOk(orderId){
+  lastOrderId = orderId;
+  $('okMsg').textContent = '注文ID：' + orderId;
+  $('okModal').style.display='flex';
+}
+function closeOkAndBack(){
+  $('qty').value = 1;
+  $('note').value = '';
   chosenItem = null;
   $('okModal').style.display='none';
   show('shopSec');
-};
+}
 
-// ====== 初期化 ======
+/* ====== LIFF 初期化 ====== */
 async function ensureLiff(){
   try{
-    if (window.__liffInited) return;
     await liff.init({ liffId: LIFF_ID });
-    window.__liffInited = true;
-  } catch(e){
-    console.warn('LIFF初期化失敗', e);
+    // LINE外 → ログインボタン表示
+    $('liffLoginBtn').style.display = liff.isLoggedIn() ? 'none' : 'block';
+    $('liffLoginBtn').onclick = ()=> liff.login({ redirectUri: location.href });
+  }catch(e){
+    console.error('LIFF初期化失敗:', e);
+    // 失敗してもアプリ本体は使えるようにする
   }
 }
 
-async function loadInit(){
-  const r = await api('loadInitData', { token: TOKEN });
-  if(!r.ok){ alert('初期データ取得に失敗しました'); return; }
-  initData = r;
-  renderShops();
-  show('shopSec');
-}
-
-document.addEventListener('DOMContentLoaded', ensureLiff);
-
-// ====== モーダル ======
-function openOk(orderId){
-  $('okMsg').textContent = '注文ID：' + orderId;
-  $('okModal').style.display = 'flex';
-}
-
-const BOT_BASIC_ID = '@029slqnu'; // ←置き換え
-
-function openOk(orderId){
-  $('okMsg').textContent = '注文ID：' + orderId;
-  $('okModal').style.display = 'flex';
-
-  // 「LINEで受け取る」→ ボットのトークを開き、order:<id> をプレフィル
-  $('sendToTalkBtn').onclick = () => {
-    const msg = `order:${orderId}`;
-    // ボット個チャを開いてメッセージ入力欄にプレフィル（ユーザーが送信をタップ）
-    location.href = `line://oaMessage/${encodeURIComponent(BOT_BASIC_ID)}/?${encodeURIComponent(msg)}`;
+/* ====== イベント割り当て ====== */
+document.addEventListener('DOMContentLoaded', async ()=>{
+  // 戻るボタン
+  $('backBtn').onclick = ()=>{ chosenItem=null; show('shopSec'); };
+  $('backToLoginBtn').onclick = ()=> show('loginSec');
+  $('logoutBtn').onclick = ()=>{
+    TOKEN=null; chosenShop=null; chosenItem=null;
+    $('uid').value=''; $('pw').value=''; show('loginSec');
   };
-}
+  $('okCloseBtn').onclick = closeOkAndBack;
+
+  // 「LINEで受け取る」→ order:<ID> を送信 or コピー
+  $('sendToLineBtn').onclick = async ()=>{
+    if(!lastOrderId){ alert('注文IDがありません'); return; }
+    const text = `order:${lastOrderId}`;
+    try{
+      if(window.liff && liff.isInClient()){
+        await liff.sendMessages([{ type:'text', text }]);
+        alert('LINEに送信しました。数秒後に注文内容が届きます。');
+      }else{
+        await navigator.clipboard.writeText(text);
+        alert('テキストをコピーしました。LINEでボットとのトークを開いて貼り付けて送信してください。');
+      }
+    }catch(e){
+      console.error('sendToLine error', e);
+      try{
+        await navigator.clipboard.writeText(text);
+        alert('送信に失敗したため、テキストをコピーしました。LINEで貼り付けて送信してください。');
+      }catch(_){}
+    }
+  };
+
+  // LIFF
+  await ensureLiff();
+
+  // ログイン処理
+  $('loginBtn').onclick = async ()=>{
+    const userId = $('uid').value.trim();
+    const password = $('pw').value;
+    if(!userId || !password){ alert('IDとパスワードを入力してください'); return; }
+    const btn = $('loginBtn'); btn.disabled=true;
+    try{
+      const r = await callApi({ action:'login', uid:userId, pw:password });
+      if(!r.ok){ alert(r.msg||'ユーザーIDまたはパスワードが間違っています'); return; }
+      TOKEN = r.token;
+      if(r.mustChange){ show('pwSec'); } else {
+        // 初期データ読み込み
+        const init = await callApi({ action:'loadInitData', token:TOKEN });
+        if(!init.ok){ alert('初期データ取得に失敗しました'); return; }
+        initData = init;
+        renderShops();
+        show('shopSec');
+      }
+    }catch(e){
+      console.error(e);
+      alert('通信エラー: Load failed');
+    }finally{
+      btn.disabled=false;
+    }
+  };
+
+  // パスワード変更
+  $('pwBtn').onclick = async ()=>{
+    const npw = $('npw').value;
+    if(!npw || npw.length<6){ alert('6文字以上にしてください'); return; }
+    const btn = $('pwBtn'); btn.disabled=true;
+    try{
+      const r = await callApi({ action:'changePassword', token:TOKEN, npw });
+      if(!r.ok){ alert(r.msg||'変更に失敗'); return; }
+      // 変更後に初期データ読み込み
+      const init = await callApi({ action:'loadInitData', token:TOKEN });
+      if(!init.ok){ alert('初期データ取得に失敗しました'); return; }
+      initData = init; renderShops(); show('shopSec');
+    }catch(e){
+      console.error(e);
+      alert('通信エラー: Load failed');
+    }finally{
+      btn.disabled=false;
+    }
+  };
+
+  // 注文
+  $('orderBtn').onclick = async ()=>{
+    if(!TOKEN){ alert('セッションが切れました。ログインし直してください。'); show('loginSec'); return; }
+    if(!chosenShop || !chosenItem){ alert('商品を選択してください'); return; }
+    if(!isOrderOpen()){ alert('現在は受付時間外です'); return; }
+
+    const qty  = Number($('qty').value||1);
+    const note = $('note').value||'';
+    const btn  = $('orderBtn'); btn.disabled=true;
+    try{
+      const r = await callApi({
+        action:'submitOrder',
+        token:TOKEN,
+        shop_id: chosenShop.shop_id,
+        item: chosenItem.item,
+        qty: qty,
+        note: note,
+        userAgent: navigator.userAgent
+      });
+      if(!r.ok){
+        alert(r.msg || '注文に失敗しました');
+        // 上限エラー時などは一覧を再描画
+        if((r.msg||'').includes('上限に達しました')) renderMenu(chosenShop.shop_id);
+        return;
+      }
+      openOk(r.orderId);
+    }catch(e){
+      console.error(e);
+      alert('通信エラー: Load failed');
+    }finally{
+      btn.disabled=false;
+    }
+  };
+});
 </script>
 </body>
 </html>
