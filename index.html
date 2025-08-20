@@ -6,12 +6,11 @@
   <title>お弁当注文</title>
 
   <!-- ★★★ ここだけ先生の環境に合わせて編集 ★★★ -->
-<script>
-  const LIFF_ID = "2007592277-egMkGZrD";
-  const GAS_URL = "https://izusho-bento.toshiyuki-y0506.workers.dev/";
-  const BOT_BASIC_ID = "@029slqnu";
-</script>
-
+  <script>
+    const LIFF_ID = "2007592277-egMkGZrD";
+    const GAS_URL = "https://izusho-bento.toshiyuki-y0506.workers.dev/";
+    const BOT_BASIC_ID = "@029slqnu";
+  </script>
   <!-- ★★★ この2行以外は触らないでOK ★★★ -->
 
   <!-- LIFF SDK（1つだけ） -->
@@ -51,6 +50,8 @@
     .modal p{margin:8px 0 16px; line-height:1.6}
     .modal .actions{display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end}
     .help{font-size:12px;color:var(--muted)}
+    /* 追加：改行を維持して見やすく表示 */
+    .modal pre{white-space:pre-wrap; word-break:break-word; margin:8px 0 16px; line-height:1.6; font-family:inherit}
   </style>
 </head>
 <body>
@@ -122,8 +123,8 @@
 <div id="okModal" class="modal-backdrop" role="dialog" aria-modal="true">
   <div class="modal">
     <h3>注文を受け付けました</h3>
-    <p id="okMsg">（注文ID：—）</p>
-    <p class="help" id="okHint">「LINEで受け取る」を押すと <code>order:注文ID</code> を送信します。外部ブラウザの場合はクリップボードにコピーします。</p>
+    <!-- 差し替え：4行の本文だけを表示 -->
+    <pre id="okMsg"></pre>
     <div class="actions">
       <button class="btn secondary" id="sendToLineBtn">LINEで受け取る</button>
       <button class="btn" id="okCloseBtn">閉じる</button>
@@ -134,9 +135,32 @@
 <script>
 /* ====== ユーティリティ ====== */
 let TOKEN=null, initData=null, chosenShop=null, chosenItem=null, lastOrderId=null;
+let lastOrderText=null; // ← 4行本文を保持
 const $ = id => document.getElementById(id);
 const show = id => { document.querySelectorAll('section').forEach(s=>s.classList.remove('active')); $(id).classList.add('active'); };
 function isOrderOpen(){ return true; } // テスト中は常に受付
+
+// 金額と時刻（JST）
+function fmtJPY(n){ return Number(n||0).toLocaleString('ja-JP') + '円'; }
+function nowJSTShort(){
+  const d = new Date();
+  return new Intl.DateTimeFormat('ja-JP', {
+    timeZone:'Asia/Tokyo', year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit', hour12:false
+  }).format(d);
+}
+
+// 4行の本文を組み立てる（単品）
+function buildOrderText(){
+  if(!chosenItem) return '';
+  const qty  = Number(document.getElementById('qty').value||1);
+  const unit = Number(chosenItem.price||0);
+  const sum  = unit * qty;
+  return `商品：${chosenItem.item} × ${qty}\n` +
+         `単価：${fmtJPY(unit)}\n` +
+         `合計：${fmtJPY(sum)}\n` +
+         `時刻：${nowJSTShort()}`;
+}
 
 // GAS 呼び出し（application/x-www-form-urlencoded）
 async function callApi(params){
@@ -146,7 +170,6 @@ async function callApi(params){
     body: new URLSearchParams(params).toString(),
   });
   if(!res.ok) throw new Error('Load failed');
-  // webhook経由のOKはプレーンテキスト"OK"なのでJSONパース失敗の可能性あり
   const text = await res.text();
   try { return JSON.parse(text); } catch(_){ return { ok:true, raw:text }; }
 }
@@ -184,8 +207,9 @@ function renderMenu(shop_id){
 
 /* ====== 受注完了モーダル ====== */
 function openOk(orderId){
-  lastOrderId = orderId;
-  $('okMsg').textContent = '注文ID：' + orderId;
+  lastOrderId   = orderId;
+  lastOrderText = buildOrderText();          // 4行の本文を作成
+  $('okMsg').textContent = lastOrderText;    // 4行だけ表示
   $('okModal').style.display='flex';
 }
 function closeOkAndBack(){
@@ -200,18 +224,16 @@ function closeOkAndBack(){
 async function ensureLiff(){
   try{
     await liff.init({ liffId: LIFF_ID });
-    // LINE外 → ログインボタン表示
     $('liffLoginBtn').style.display = liff.isLoggedIn() ? 'none' : 'block';
     $('liffLoginBtn').onclick = ()=> liff.login({ redirectUri: location.href });
   }catch(e){
     console.error('LIFF初期化失敗:', e);
-    // 失敗してもアプリ本体は使えるようにする
   }
 }
 
 /* ====== イベント割り当て ====== */
 document.addEventListener('DOMContentLoaded', async ()=>{
-  // 戻るボタン
+  // 戻る/ログアウト/閉じる
   $('backBtn').onclick = ()=>{ chosenItem=null; show('shopSec'); };
   $('backToLoginBtn').onclick = ()=> show('loginSec');
   $('logoutBtn').onclick = ()=>{
@@ -220,31 +242,29 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   };
   $('okCloseBtn').onclick = closeOkAndBack;
 
-  // 「LINEで受け取る」→ order:<ID> を送信 or コピー
+  // 「LINEで受け取る」：oaMessage で本文を入力欄に自動挿入（失敗時は静かにコピー）
   $('sendToLineBtn').onclick = async ()=>{
-    if(!lastOrderId){ alert('注文IDがありません'); return; }
-    const text = `order:${lastOrderId}`;
+    if(!lastOrderText || !lastOrderText.trim()){
+      lastOrderText = buildOrderText();
+      if(!lastOrderText) return;
+    }
+    const botPath = encodeURIComponent(BOT_BASIC_ID); // "@xxxx" → "%40xxxx"
+    const oaUrl   = `https://line.me/R/oaMessage/${botPath}/?${encodeURIComponent(lastOrderText)}`;
     try{
-      if(window.liff && liff.isInClient()){
-        await liff.sendMessages([{ type:'text', text }]);
-        alert('LINEに送信しました。数秒後に注文内容が届きます。');
+      if(window.liff && liff.isApiAvailable && liff.isApiAvailable('shareTargetPicker')){
+        liff.openWindow({ url: oaUrl, external: true });
       }else{
-        await navigator.clipboard.writeText(text);
-        alert('テキストをコピーしました。LINEでボットとのトークを開いて貼り付けて送信してください。');
+        location.href = oaUrl;
       }
-    }catch(e){
-      console.error('sendToLine error', e);
-      try{
-        await navigator.clipboard.writeText(text);
-        alert('送信に失敗したため、テキストをコピーしました。LINEで貼り付けて送信してください。');
-      }catch(_){}
+    }catch(_){
+      try{ await navigator.clipboard.writeText(lastOrderText); }catch(e){}
     }
   };
 
   // LIFF
   await ensureLiff();
 
-  // ログイン処理
+  // ログイン
   $('loginBtn').onclick = async ()=>{
     const userId = $('uid').value.trim();
     const password = $('pw').value;
@@ -255,12 +275,9 @@ document.addEventListener('DOMContentLoaded', async ()=>{
       if(!r.ok){ alert(r.msg||'ユーザーIDまたはパスワードが間違っています'); return; }
       TOKEN = r.token;
       if(r.mustChange){ show('pwSec'); } else {
-        // 初期データ読み込み
         const init = await callApi({ action:'loadInitData', token:TOKEN });
         if(!init.ok){ alert('初期データ取得に失敗しました'); return; }
-        initData = init;
-        renderShops();
-        show('shopSec');
+        initData = init; renderShops(); show('shopSec');
       }
     }catch(e){
       console.error(e);
@@ -278,7 +295,6 @@ document.addEventListener('DOMContentLoaded', async ()=>{
     try{
       const r = await callApi({ action:'changePassword', token:TOKEN, npw });
       if(!r.ok){ alert(r.msg||'変更に失敗'); return; }
-      // 変更後に初期データ読み込み
       const init = await callApi({ action:'loadInitData', token:TOKEN });
       if(!init.ok){ alert('初期データ取得に失敗しました'); return; }
       initData = init; renderShops(); show('shopSec');
@@ -311,7 +327,6 @@ document.addEventListener('DOMContentLoaded', async ()=>{
       });
       if(!r.ok){
         alert(r.msg || '注文に失敗しました');
-        // 上限エラー時などは一覧を再描画
         if((r.msg||'').includes('上限に達しました')) renderMenu(chosenShop.shop_id);
         return;
       }
