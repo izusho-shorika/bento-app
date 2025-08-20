@@ -276,8 +276,6 @@ document.addEventListener('DOMContentLoaded', async ()=>{
       TOKEN = r.token;
       if(r.mustChange){ show('pwSec'); } else {
         const init = await callApi({ action:'loadInitData', token:TOKEN });
-        alert('APIから受け取った店舗数: ' + (init && init.shops ? init.shops.length : 'undef'));
-        console.log('initオブジェクト', init);
 
         if(!init.ok){ alert('初期データ取得に失敗しました'); return; }
         initData = init; renderShops(); show('shopSec');
