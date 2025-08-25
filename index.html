@@ -163,11 +163,16 @@ function buildOrderText(){
   const unit  = Number(chosenItem.price||0);
   const sum   = unit * qty;
   const note  = (document.getElementById('note').value || '').trim();
-  return `店舗：${chosenShop.shop_name}\n` +
-         `商品：${chosenItem.item} × ${qty}\n` +
-         `単価：${fmtJPY(unit)}\n` +
-         `合計：${fmtJPY(sum)}\n` +
-         (note ? `備考：${note}\n` : '') +
+  return `店舗：${chosenShop.shop_name}
+` +
+         `商品：${chosenItem.item} × ${qty}
+` +
+         `単価：${fmtJPY(unit)}
+` +
+         `合計：${fmtJPY(sum)}
+` +
+         (note ? `備考：${note}
+` : '') +
          `時刻：${nowJSTShort()}`;
 }
 
@@ -251,13 +256,13 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   };
   $('okCloseBtn').onclick = closeOkAndBack;
 
-  // 「LINEで受け取る」：oaMessage で本文を入力欄に自動挿入（失敗時は静かにコピー）
+  // 「LINEで受け取る」
   $('sendToLineBtn').onclick = async ()=>{
     if(!lastOrderText || !lastOrderText.trim()){
       lastOrderText = buildOrderText();
       if(!lastOrderText) return;
     }
-    const botPath = encodeURIComponent(BOT_BASIC_ID); // "@xxxx" → "%40xxxx"
+    const botPath = encodeURIComponent(BOT_BASIC_ID);
     const oaUrl   = `https://line.me/R/oaMessage/${botPath}/?${encodeURIComponent(lastOrderText)}`;
     try{
       if(window.liff && liff.isApiAvailable && liff.isApiAvailable('shareTargetPicker')){
@@ -277,22 +282,20 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   $('loginBtn').onclick = async ()=>{
     const userId = $('uid').value.trim();
     const password = $('pw').value;
-    if(!userId || !password){ alert('IDとパスワードを入力してください'); return; }
+    if(!userId || !password){ alert('学籍番号とパスワードを入力してください。'); return; }
     const btn = $('loginBtn'); btn.disabled=true;
     try{
       const r = await callApi({ action:'login', uid:userId, pw:password });
-      if(!r.ok){ alert(r.msg||'ユーザーIDまたはパスワードが間違っています'); return; }
+      if(!r.ok){ alert(r.msg||'学籍番号またはパスワードが正しくありません。'); return; }
       TOKEN = r.token;
       if(r.mustChange){ show('pwSec'); } else {
         const init = await callApi({ action:'loadInitData', token:TOKEN });
-        
-        // 修正: 店舗数表示を削除
-        if(!init.ok){ alert('初期データ取得に失敗しました'); return; }
+        if(!init.ok){ alert('初期データの取得に失敗しました。'); return; }
         initData = init; renderShops(); show('shopSec');
       }
     }catch(e){
       console.error(e);
-      alert('通信エラー: Load failed');
+      alert('通信に失敗しました。電波状況やWi-Fiを確認してください。');
     }finally{
       btn.disabled=false;
     }
@@ -301,17 +304,17 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   // パスワード変更
   $('pwBtn').onclick = async ()=>{
     const npw = $('npw').value;
-    if(!npw || npw.length<6){ alert('6文字以上にしてください'); return; }
+    if(!npw || npw.length<6){ alert('新しいパスワードは6文字以上にしてください。'); return; }
     const btn = $('pwBtn'); btn.disabled=true;
     try{
       const r = await callApi({ action:'changePassword', token:TOKEN, npw });
-      if(!r.ok){ alert(r.msg||'変更に失敗'); return; }
+      if(!r.ok){ alert(r.msg||'パスワードの変更に失敗しました。再度入力してください。'); return; }
       const init = await callApi({ action:'loadInitData', token:TOKEN });
-      if(!init.ok){ alert('初期データ取得に失敗しました'); return; }
+      if(!init.ok){ alert('初期データの取得に失敗しました。'); return; }
       initData = init; renderShops(); show('shopSec');
     }catch(e){
       console.error(e);
-      alert('通信エラー: Load failed');
+      alert('通信に失敗しました。電波状況を確認して、もう一度試してください。');
     }finally{
       btn.disabled=false;
     }
@@ -319,9 +322,9 @@ document.addEventListener('DOMContentLoaded', async ()=>{
 
   // 注文
   $('orderBtn').onclick = async ()=>{
-    if(!TOKEN){ alert('セッションが切れました。ログインし直してください。'); show('loginSec'); return; }
-    if(!chosenShop || !chosenItem){ alert('商品を選択してください'); return; }
-    if(!isOrderOpen()){ alert('現在は受付時間外です'); return; }
+    if(!TOKEN){ alert('セッションが切れました。もう一度ログインしてください。'); show('loginSec'); return; }
+    if(!chosenShop || !chosenItem){ alert('商品を選択してください。'); return; }
+    if(!isOrderOpen()){ alert('現在は注文受付時間外です。'); return; }
 
     const qty   = Number($('qty').value||1);
     const note = $('note').value||'';
@@ -337,14 +340,14 @@ document.addEventListener('DOMContentLoaded', async ()=>{
         userAgent: navigator.userAgent
       });
       if(!r.ok){
-        alert(r.msg || '注文に失敗しました');
+        alert(r.msg || '注文に失敗しました。もう一度やり直してください。');
         if((r.msg||'').includes('上限に達しました')) renderMenu(chosenShop.shop_id);
         return;
       }
       openOk(r.orderId);
     }catch(e){
       console.error(e);
-      alert('通信エラー: Load failed');
+      alert('通信に失敗しました。電波状況を確認して、もう一度試してください。');
     }finally{
       btn.disabled=false;
     }
