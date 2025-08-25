@@ -158,11 +158,12 @@ function nowJSTShort(){
 
 // 4行の本文を組み立てる（単品）
 function buildOrderText(){
-  if(!chosenItem) return '';
+  if(!chosenItem || !chosenShop) return '';
   const qty   = Number(document.getElementById('qty').value||1);
   const unit  = Number(chosenItem.price||0);
   const sum   = unit * qty;
-  return `商品：${chosenItem.item} × ${qty}\n` +
+  return `店舗：${chosenShop.shop_name}\n` +
+         `商品：${chosenItem.item} × ${qty}\n` +
          `単価：${fmtJPY(unit)}\n` +
          `合計：${fmtJPY(sum)}\n` +
          `時刻：${nowJSTShort()}`;
