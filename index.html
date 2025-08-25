@@ -162,10 +162,12 @@ function buildOrderText(){
   const qty   = Number(document.getElementById('qty').value||1);
   const unit  = Number(chosenItem.price||0);
   const sum   = unit * qty;
+  const note  = (document.getElementById('note').value || '').trim();
   return `店舗：${chosenShop.shop_name}\n` +
          `商品：${chosenItem.item} × ${qty}\n` +
          `単価：${fmtJPY(unit)}\n` +
          `合計：${fmtJPY(sum)}\n` +
+         (note ? `備考：${note}\n` : '') +
          `時刻：${nowJSTShort()}`;
 }
 
